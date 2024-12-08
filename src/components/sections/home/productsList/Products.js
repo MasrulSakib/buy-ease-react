@@ -2,12 +2,15 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import ProductsCard from './ProductsCard';
 import { CartContext } from '../../../../context/CartContext';
 
-
 const Products = () => {
     const [productsInfo, setProductsInfo] = useState([]);
     const [productsImg, setProductsImg] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const carouselRef = useRef(null);
+    const isDragging = useRef(false);  // To track dragging state
+    const startPosition = useRef(0);  // To store the initial position when dragging starts
+    const scrollPosition = useRef(0);  // To store the scroll position before drag
+
     const { addToCart } = useContext(CartContext);
 
     useEffect(() => {
@@ -41,8 +44,42 @@ const Products = () => {
         }
     }, [currentIndex]);
 
+    const handleMouseDown = (e) => {
+        e.preventDefault();
+        isDragging.current = true;
+        startPosition.current = e.clientX;
+        scrollPosition.current = carouselRef.current.scrollLeft;
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging.current) return;
+
+        const moveDistance = e.clientX - startPosition.current;
+        carouselRef.current.scrollLeft = scrollPosition.current - moveDistance;
+    };
+
+    const handleMouseUp = () => {
+        isDragging.current = false;
+    };
+
+    useEffect(() => {
+        const carouselElement = carouselRef.current;
+
+        carouselElement.addEventListener('mousedown', handleMouseDown);
+        carouselElement.addEventListener('mousemove', handleMouseMove);
+        carouselElement.addEventListener('mouseup', handleMouseUp);
+        carouselElement.addEventListener('mouseleave', handleMouseUp);
+
+        return () => {
+            carouselElement.removeEventListener('mousedown', handleMouseDown);
+            carouselElement.removeEventListener('mousemove', handleMouseMove);
+            carouselElement.removeEventListener('mouseup', handleMouseUp);
+            carouselElement.removeEventListener('mouseleave', handleMouseUp);
+        };
+    }, []);
+
     return (
-        <div className="container mx-auto my-10 px-4">
+        <div className="container mx-auto my-10 px-4 overflow-x-hidden">
             <h3 className="text-4xl font-bold mb-6 text-left">
                 Shop All Winter Clothes From Here
             </h3>
@@ -50,7 +87,7 @@ const Products = () => {
                 {/* Left Arrow */}
                 <button
                     onClick={handlePrevious}
-                    disabled={currentIndex === 0} // Disable button if no cards on the left
+                    disabled={currentIndex === 0}
                     className={`absolute left-4 z-10 bg-gray-800 text-white rounded-full p-4 hover:bg-gray-700 transition-all duration-300 shadow-lg ${currentIndex === 0 ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                 >
@@ -70,7 +107,7 @@ const Products = () => {
                 <div className="flex overflow-hidden w-full justify-center">
                     <div
                         ref={carouselRef}
-                        className="flex"
+                        className="flex cursor-grab user-select-none"
                         style={{ width: `${productsInfo.length * 350}px` }}
                     >
                         {productsInfo.map((productInfo, index) => {
@@ -84,7 +121,7 @@ const Products = () => {
                                     <ProductsCard
                                         productInfo={productInfo}
                                         imageUrl={imageUrl}
-                                        addToCart={addToCart} // Pass the addToCart function to ProductsCard
+                                        addToCart={addToCart}
                                     />
                                 </div>
                             );
@@ -95,7 +132,7 @@ const Products = () => {
                 {/* Right Arrow */}
                 <button
                     onClick={handleNext}
-                    disabled={currentIndex === productsInfo.length - 1} // Disable button if no cards on the right
+                    disabled={currentIndex === productsInfo.length - 1}
                     className={`absolute right-4 z-10 bg-gray-800 text-white rounded-full p-4 hover:bg-gray-700 transition-all duration-300 shadow-lg ${currentIndex === productsInfo.length - 1 ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                 >
